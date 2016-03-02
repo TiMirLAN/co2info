@@ -1,10 +1,14 @@
 #!/usr/bin/env python2.7
 # coding='utf-8'
-from tornado import ioloop, gen, websocket, web, autoreload
+from tornado import ioloop, gen, websocket, web, autoreload, options
 import hid
 from array import array
-from time import time
+from time import time, sleep
 import sqlite3
+import logging
+
+l = logging.getLogger("tornado.application")
+options.parse_command_line()
 
 def decode(buff):
     data = array('B', buff)
@@ -36,7 +40,7 @@ class CO2WebsocketHandler(websocket.WebSocketHandler):
             h.handler_measure(tp,value)
 
     def open(self):
-        print 'open'
+        l.info('Client connected.')
         if self not in self.__class__.handlers:
             self.__class__.handlers.append(self)
 
@@ -44,25 +48,24 @@ class CO2WebsocketHandler(websocket.WebSocketHandler):
         self.write_message(dict(tp=tp,val=value))
 
     def initialize(self, name):
-        print 'init'
+        l.info('Initialized.')
 
     def on_close(self):
-        print 'close'
+        l.info('Client disconnected.')
         self.__class__.handlers.remove(self)
-        self.dbconn.close()
 
     def check_origin(self, origin):
         return True
 
-if __name__ == '__main__':
-
+if __name__ == '__main__': 
     dev = hid.device(0x04d9,0xa052)
     dev.close()
     dev.open(0x04d9,0xa052)
     dev.send_feature_report([0x00]*8)
-    print 'nonblock: ', dev.set_nonblocking(0)
-    print 'dev ready'
+    l.info('Device nonblocking mode: %s', dev.set_nonblocking(0))
+    l.info('Device ready.')
     dbconn = sqlite3.connect('./measure.sqite3')
+    l.info('Connected to "./measure.sqlite3".')
     dbc = dbconn.cursor()
     dbc.execute(
     '''CREATE TABLE IF NOT EXISTS measures (
@@ -79,7 +82,7 @@ if __name__ == '__main__':
     def onreload():
         dev.close()
         dbconn.close()
-        print 'stopped'
+        l.info('Stopped')
 
     @gen.coroutine
     def update():
@@ -92,18 +95,19 @@ if __name__ == '__main__':
                 # Temperature
                 val = value*0.0625 - 273.15
                 CO2WebsocketHandler.broadcast('temp',val)
+                l.info('Temperature: %s', val)
                 store('temp', val)
             elif measureType is 80:
                 # CO2
                 CO2WebsocketHandler.broadcast('co2', value) 
+                l.info('CO2: %s', value)
                 store('co2', value)
-
 
 
     app = web.Application([
         (r"/sock/",CO2WebsocketHandler, dict(name='co2')),
     ], autoreload=True, xsrf_cookies=False, debug=True)
-    app.listen(8888, '127.0.0.1')
+    app.listen(8888, '0.0.0.0')
     io_loop = ioloop.IOLoop.current()
     autoreload.add_reload_hook(onreload)
     task = ioloop.PeriodicCallback(update, 100, io_loop)

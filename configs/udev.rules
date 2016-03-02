@@ -1,6 +1,6 @@
 # Should be linked to /etc/udev/rules.d/99-holtek-usb.rules
 # For holtek co2 mesurer.
 
-SUBSYSTEM=="usbmisc", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="a052", SYMLINK+="co2m", MODE="0666"
+SUBSYSTEM=="usbmisc", ATTRS{idVendor}=="04d9", ATTRS{idProduct}=="a052", SYMLINK+="co2m", MODE="0777"
 
 # vim: syntax=udevrules

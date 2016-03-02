@@ -2,3 +2,10 @@
 ## swap
 [._]*.s[a-w][a-z]
 [._]s[a-w][a-z]
+
+# LOGS
+logs/*
+
+# DATABASES
+*.sqlite3
+*.sqite3
