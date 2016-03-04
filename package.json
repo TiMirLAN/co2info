@@ -1,0 +1,27 @@
+{
+  "name": "co2info",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TiMirLAN/co2info.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TiMirLAN/co2info/issues"
+  },
+  "homepage": "https://github.com/TiMirLAN/co2info#readme",
+  "devDependencies": {
+    "express-ws": "^1.0.0",
+    "jade": "^1.11.0",
+    "lodash": "^4.6.1",
+    "q": "^1.4.1",
+    "webpack": "^1.12.14"
+  }
+}
