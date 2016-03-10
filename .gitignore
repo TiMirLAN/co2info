@@ -8,4 +8,12 @@ logs/*
 
 # DATABASES
 *.sqlite3
-*.sqite3
+*sqite3
+
+# NODEJS
+node_modules/
+bower_components/
+
+# PROJECT
+assets/scripts/**/*.js
+utils/**/*.js

@@ -1,0 +1,21 @@
+{
+  "name": "co2info",
+  "version": "0.0.0",
+  "homepage": "https://github.com/TiMirLAN/co2info",
+  "authors": [
+    "Тимофей Миронов <mironov@evast.ru>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular-websocket": "~1.0.14",
+    "Chart.js": "~1.0.2",
+    "lodash": "~4.6.1"
+  }
+}
