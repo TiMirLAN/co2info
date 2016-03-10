@@ -1,20 +1,23 @@
 require '../../bower_components/angular/angular.js'
-#require '../../bower_components/angular-websocket/angular-websocket.js'
+require '../../bower_components/angular-websocket/angular-websocket.js'
 Chart = require '../../bower_components/Chart.js/Chart.js'
 _ = require '../../bower_components/lodash/lodash'
 
 module = angular.module 'CO2Info', [
-  #  'ngWebSocket'
+    'ngWebSocket'
 ]
 
 module.factory 'Measures', [
   '$websocket'
   ($ws)->
-    stream = $ws 'ws://127.0.0.1:8888/sock/'
-    measures = 
+    stream = $ws 'ws://192.168.2.163:8888/sock/'
+    measures =
       temp: 0
       co2: 0
-    stream.onMessage console.log.bind console
+    stream.onMessage (event)->
+      data = JSON.parse event.data
+      console.log event, data
+      measures[data.tp] = data.val
     measures
 ]
 
@@ -36,7 +39,7 @@ module.factory 'MockMeasures', [
 module.directive 'measureRenderer', [
   ()->
     SIZE = 50
-    UPDATE_INTERVAL = 500
+    UPDATE_INTERVAL = 2000
 
     template: """
     <div ng-class="widgetCssClass">
@@ -45,7 +48,7 @@ module.directive 'measureRenderer', [
     """
     scope:
       name: '@measureRenderer'
-    controller: ['$scope', '$element','MockMeasures', ($scope, $element, measures)->
+    controller: ['$scope', '$element','Measures', ($scope, $element, measures)->
       $scope.widgetCssClass="widget__#{$scope.name}"
       $scope.measures = measures
     ]
