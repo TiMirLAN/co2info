@@ -7,20 +7,33 @@ module = angular.module 'CO2Info', [
     'ngWebSocket'
 ]
 
-module.factory 'Measures', [
+module.value 'currentMeasures', {
+  co2: 0
+  temp: 0
+}
+
+module.factory 'promiseMeasures', [
   '$websocket'
-  ($ws)->
+  '$q'
+  'currentMeasures'
+  ($ws, $q, currentMeasures)->
+    defer = do $q.defer
     stream = $ws 'ws://192.168.2.163:8888/sock/'
-    measures =
-      temp: 0
-      co2: 0
+    
+    # Handlers for events
+    handlers = {}
+    handlers.history = (data)-> defer.resolve data
+    handlers.measures = (data)-> currentMeasures[data.tp] = data.val
+
+    # Message listner
     stream.onMessage (event)->
-      data = JSON.parse event.data
-      console.log event, data
-      measures[data.tp] = data.val
-    measures
+      emit = JSON.parse event.data
+      [event, data] = emit
+      handlers[event]?(data)
+    defer.promise
 ]
 
+###
 module.factory 'MockMeasures', [
   '$timeout'
   ($timeout)->
@@ -35,9 +48,11 @@ module.factory 'MockMeasures', [
     do req
     measures
 ]
+###
 
 module.directive 'measureRenderer', [
-  ()->
+  'promiseMeasures'
+  (promiseMeasures)->
     SIZE = 50
     UPDATE_INTERVAL = 2000
 
@@ -48,32 +63,34 @@ module.directive 'measureRenderer', [
     """
     scope:
       name: '@measureRenderer'
-    controller: ['$scope', '$element','Measures', ($scope, $element, measures)->
+    controller: ['$scope', '$element','currentMeasures', ($scope, $element, currentMeasures)->
       $scope.widgetCssClass="widget__#{$scope.name}"
-      $scope.measures = measures
+      $scope.measures = currentMeasures
     ]
     link: (scope, iElem)->
       canvasDom = iElem.find('canvas')[0]
       canvasDom.id = "w#{scope.name}"
-      canvasDom.width = 600
-      canvasDom.height = 400
-      ctx = canvasDom.getContext '2d'
-      chart = new Chart(ctx).Line(
-        {
-          labels: _(1).range(SIZE).map(->'').value()
-          datasets:[
-            {
-            label: scope.name
-            data: _(1).range(SIZE).map(->0).value()
-            }
-          ]
-        }
-      )
-      cnt = SIZE
-      setInterval ->
-        chart.removeData()
-        chart.addData [scope.measures[scope.name]], ++cnt
-      , UPDATE_INTERVAL
+      promiseMeasures.then (initial)->
+        canvasDom.width = 600
+        canvasDom.height = 400
+        ctx = canvasDom.getContext '2d'
+        chart = new Chart(ctx).Line(
+          {
+            labels: ('' for i in initial[scope.name])
+            datasets:[
+              {
+              label: scope.name
+              data: initial[scope.name]
+              }
+            ]
+          }
+        )
+        scope.measures[scope.name] = _.last initial[scope.name]
+        cnt = SIZE
+        setInterval ->
+          chart.removeData()
+          chart.addData [scope.measures[scope.name]], ''
+        , UPDATE_INTERVAL
 ]
 
 # finally
