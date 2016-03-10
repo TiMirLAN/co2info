@@ -6,6 +6,8 @@ from array import array
 from time import time, sleep
 import sqlite3
 import logging
+import itertools
+import json
 
 l = logging.getLogger("tornado.application")
 options.parse_command_line()
@@ -31,6 +33,7 @@ def decode(buff):
     return result
 
 
+sorter = lambda x: x[0]
 
 class CO2WebsocketHandler(websocket.WebSocketHandler):
     handlers = []
@@ -39,13 +42,23 @@ class CO2WebsocketHandler(websocket.WebSocketHandler):
         for h in cls.handlers:
             h.handler_measure(tp,value)
 
+    def _get_history(self):
+        cursor = self.application.settings['db']['cursor']
+        cursor.execute('SELECT type, value FROM measures LIMIT 50;')
+        data = cursor.fetchall()
+        return {k:[float(v[1]) for v in i] for k,i in itertools.groupby(sorted(data),lambda x: x[0])}
+
     def open(self):
         l.info('Client connected.')
         if self not in self.__class__.handlers:
             self.__class__.handlers.append(self)
+        self.emit(['history', self._get_history()])
 
     def handler_measure(self, tp, value): 
-        self.write_message(dict(tp=tp,val=value))
+        self.emit(['measures', dict(tp=tp,val=value)])
+
+    def emit(self, data):
+        self.write_message(json.dumps(data))
 
     def initialize(self, name):
         l.info('Initialized.')
@@ -106,7 +119,7 @@ if __name__ == '__main__':
 
     app = web.Application([
         (r"/sock/",CO2WebsocketHandler, dict(name='co2')),
-    ], autoreload=True, xsrf_cookies=False, debug=True)
+    ], autoreload=True, xsrf_cookies=False, debug=True, db=dict(cursor=dbc, connection=dbconn))
     app.listen(8888, '0.0.0.0')
     io_loop = ioloop.IOLoop.current()
     autoreload.add_reload_hook(onreload)
